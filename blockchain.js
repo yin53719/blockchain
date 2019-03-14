@@ -4,7 +4,7 @@ const initBlock = {
   previousHash: '0',
   timestamp: 1538669227813,
   data: 'Welcome to iblockchain!',
-  hash: '00sssaa1fbf27775ab79612bcb8171b3a9e02efe32fa628450ba6e729cf03996',
+  hash: '00000aa1fbf27775ab79612bcb8171b3a9e02efe32fa628450ba6e729cf03996',
   nonce: 979911
 }
 class Blockchain {
@@ -12,8 +12,6 @@ class Blockchain {
       this.blockchain = [initBlock]
       this.data = 'hardy'
       this.difficulty = 5;
-      // const hash = this.computeHash(0,'0',new Date().getTime(),'hello-woniuchain',1)
-      // console.log(hash)
   }
    // 挖矿
   mine(){
@@ -42,7 +40,6 @@ class Blockchain {
       tiemstamp = new Date().getTime();
       hash = this.computeHash(nonce,prevHash,tiemstamp,data,nonce)
     }
-    
     return {
       index,nonce,prevHash,tiemstamp,data,nonce,hash
     }
@@ -57,17 +54,18 @@ class Blockchain {
   // 校验区块
   isValidBlock(newBlock){
     const lastBlock = this.getLastBlock(newBlock)
+    /** 
+     * 新区块索引等于上一个区块索引加一 
+     * 新区块preHash 等于上一个区块hash
+     * 新区块哈希前几位等于约定规则
+     * */ 
     if(newBlock.index !== lastBlock.index+1){
-      console.log(1)
       return false;
     }else if(newBlock.tiemstamp <= lastBlock.tiemstamp){
-      console.log(2)
       return false;
     }else if(newBlock.prevHash !== lastBlock.hash){
-      console.log(4)
       return false;
     }else if(newBlock.hash.slice(0,this.difficulty) !== '0'.repeat(this.difficulty)){
-      console.log(5)
       return false;
     }
 
@@ -81,6 +79,7 @@ class Blockchain {
 
 let bc = new Blockchain();
 
+bc.mine()
 bc.mine()
 bc.mine()
 bc.mine()
