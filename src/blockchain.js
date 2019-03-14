@@ -1,7 +1,7 @@
 const crypto = require('crypto')
 const initBlock = {
   index: 0,
-  previousHash: '0',
+  prevHash: '0',
   timestamp: 1538669227813,
   data: 'Welcome to iblockchain!',
   hash: '00000aa1fbf27775ab79612bcb8171b3a9e02efe32fa628450ba6e729cf03996',
@@ -10,21 +10,36 @@ const initBlock = {
 class Blockchain {
   constructor(){
       this.blockchain = [initBlock]
-      this.data = 'hardy'
+      this.data = []
       this.difficulty = 5;
   }
    // 挖矿
-  mine(){
+  mine(address){
     const newBlock = this.generatnewBlock()
 
-    if(this.isValidBlock(newBlock)){
+    if(this.isValidBlock(newBlock) && this.isValidChain()){
+      this.transfer('0',address,100)
       this.blockchain.push(newBlock)
+      this.data = [];
+      return newBlock
     }else{
       console.log('Error,Invalid Block');
     }
   }
+  blance(){
+    
+  }
   getLastBlock(){
     return this.blockchain[this.blockchain.length-1]
+  }
+  transfer(from,to,amount){
+    const transObj = { from ,to,amount}
+    this.data.push(transObj)
+    return transObj
+  }
+  computeForBlock({index,prevHash,timestamp,data,nonce}){
+      // const {index,prevHash,timestamp,data,nonce} = newBlock
+    return this.computeHash(index,prevHash,timestamp,data,nonce)
   }
   // 生成新区块
   generatnewBlock(){
@@ -32,28 +47,28 @@ class Blockchain {
     const index = this.blockchain.length;
     const data = this.data
     const prevHash = this.getLastBlock().hash
-    let tiemstamp = new Date().getTime();
-    let hash = this.computeHash(nonce,prevHash,tiemstamp,data,nonce)
+    let timestamp = new Date().getTime();
+    let hash = this.computeHash(index,prevHash,timestamp,data,nonce)
 
     while(hash.slice(0,this.difficulty)!=='0'.repeat(this.difficulty)){
       nonce += 1
-      tiemstamp = new Date().getTime();
-      hash = this.computeHash(nonce,prevHash,tiemstamp,data,nonce)
+      // timestamp = new Date().getTime();
+      hash = this.computeHash(index,prevHash,timestamp,data,nonce)
     }
     return {
-      index,nonce,prevHash,tiemstamp,data,nonce,hash
+      index,prevHash,timestamp,data,hash,nonce
     }
   }
   // 计算哈希
-  computeHash(index,prevHash,tiemstamp,data,nonce){
+  computeHash(index,prevHash,timestamp,data,nonce){
      return crypto
                   .createHash('sha256')
-                  .update(index + prevHash + tiemstamp + data + nonce)
+                  .update(index + prevHash + timestamp + data + nonce)
                   .digest('hex')
   }
   // 校验区块
-  isValidBlock(newBlock){
-    const lastBlock = this.getLastBlock(newBlock)
+  isValidBlock(newBlock,lastBlock = this.getLastBlock()){
+    // const lastBlock = prevHash
     /** 
      * 新区块索引等于上一个区块索引加一 
      * 新区块preHash 等于上一个区块hash
@@ -61,26 +76,30 @@ class Blockchain {
      * */ 
     if(newBlock.index !== lastBlock.index+1){
       return false;
-    }else if(newBlock.tiemstamp <= lastBlock.tiemstamp){
+    }else if(newBlock.timestamp <= lastBlock.timestamp){
       return false;
     }else if(newBlock.prevHash !== lastBlock.hash){
       return false;
     }else if(newBlock.hash.slice(0,this.difficulty) !== '0'.repeat(this.difficulty)){
       return false;
+    }else if(newBlock.hash!==this.computeForBlock(newBlock)){
+      return false
     }
 
     return true
   }
-  isValidChain(){
+  isValidChain(chain = this.blockchain){
 
+    for(let i =chain.length-1;i>=1;i--){
+      if(!this.isValidBlock(chain[i],chain[i-1])){
+        return false
+      }
+    }
+
+    return true
+    
   }
 
 }
 
-let bc = new Blockchain();
-
-bc.mine()
-bc.mine()
-bc.mine()
-bc.mine()
-console.log(bc.blockchain)
+module.exports = Blockchain
