@@ -15,10 +15,12 @@ class Blockchain {
   }
    // 挖矿
   mine(address){
-    const newBlock = this.generatnewBlock()
 
+    this.transfer('0',address,100)
+    const newBlock = this.generatnewBlock()
+   
     if(this.isValidBlock(newBlock) && this.isValidChain()){
-      this.transfer('0',address,100)
+      
       this.blockchain.push(newBlock)
       this.data = [];
       return newBlock
@@ -26,13 +28,37 @@ class Blockchain {
       console.log('Error,Invalid Block');
     }
   }
-  blance(){
-    
+  blance(address){
+    let blance = 0;
+    this.blockchain.forEach(block =>{
+      if(!Array.isArray(block.data)){
+        return
+      }
+      block.data.forEach(trans =>{
+          if(address==trans.from){
+              blance -=trans.amount
+          }
+          if(address==trans.to){
+            blance +=trans.amount
+        }
+      })
+    })
+    console.log(blance)
+    return blance
+
   }
   getLastBlock(){
     return this.blockchain[this.blockchain.length-1]
   }
   transfer(from,to,amount){
+    if(from!=='0'){
+      //交易非挖矿
+      const blance = this.blance(from)
+      if(blance<amount){
+        console.log('not enough blance',from ,to,amount)
+        return 
+      }
+    }
     const transObj = { from ,to,amount}
     this.data.push(transObj)
     return transObj

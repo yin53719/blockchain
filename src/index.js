@@ -27,6 +27,16 @@ function formatLog(data){
 
 
 const blockchain = new Blockchain()
+
+vorpal.command('blance <address>','查看区块余额')
+      .action(function(args,callback){
+         const blance = blockchain.blance(args.address)
+         if(blance){
+            formatLog({blance,address:args.address})
+         }
+         callback()
+      })
+
 vorpal.command('detils <index>','查看区块明细')
       .action(function(args,callback){
          const block = blockchain.blockchain[args.index]
@@ -36,7 +46,9 @@ vorpal.command('detils <index>','查看区块明细')
 vorpal.command('trans <from> <to> <amount>','交易转账')
        .action(function(args,callback){
             let trans = blockchain.transfer(args.from,args.to,args.amount)
-            formatLog(trans)
+            if(trans){
+                formatLog(trans)
+            }
             callback()
        })
 
