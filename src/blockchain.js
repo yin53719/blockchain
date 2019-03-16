@@ -1,4 +1,8 @@
+
 const crypto = require('crypto')
+
+const rsa = require('./rsa')
+
 const initBlock = {
   index: 0,
   prevHash: '0',
@@ -15,7 +19,14 @@ class Blockchain {
   }
    // 挖矿
   mine(address){
+    // 验证交易是否合法
+    if(!this.data.every(v=>this.isValidTranser(v))){
+      console.log('trans,not valid');
+      return 
+    }
 
+    this.data = this.data.filter(v=>this.isValidTranser(v))
+    // 挖矿结束，旷工奖励，100
     this.transfer('0',address,100)
     const newBlock = this.generatnewBlock()
    
@@ -59,9 +70,12 @@ class Blockchain {
         return 
       }
     }
-    const transObj = { from ,to,amount}
-    this.data.push(transObj)
-    return transObj
+    // const transObj = { from ,to,amount}
+    const sign = rsa.sign({from,to,amount})
+    const sinTrans = {from,to,amount,sign }
+
+    this.data.push(sinTrans)
+    return sinTrans
   }
   computeForBlock({index,prevHash,timestamp,data,nonce}){
       // const {index,prevHash,timestamp,data,nonce} = newBlock
@@ -78,7 +92,6 @@ class Blockchain {
 
     while(hash.slice(0,this.difficulty)!=='0'.repeat(this.difficulty)){
       nonce += 1
-      // timestamp = new Date().getTime();
       hash = this.computeHash(index,prevHash,timestamp,data,nonce)
     }
     return {
@@ -91,6 +104,11 @@ class Blockchain {
                   .createHash('sha256')
                   .update(index + prevHash + timestamp + data + nonce)
                   .digest('hex')
+  }
+  isValidTranser(trans){
+    // 是否合法转账
+
+    return rsa.verify(trans,trans.from)
   }
   // 校验区块
   isValidBlock(newBlock,lastBlock = this.getLastBlock()){

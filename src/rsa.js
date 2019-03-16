@@ -47,24 +47,14 @@ function sign({from,to,amount}){
 
 // 2,校验证签名
 
-function verity({from,to,amount,signature},pub){
+function verify({from,to,amount,signature},pub){
     const keypairTemp = ec.keyFromPublic(pub,'hex')
     const bufferMsg = Buffer.from(`${from}-${to}-${amount}`)
     return keypairTemp.verify(bufferMsg,signature)
 }
 
 
-const trans = {from:'woniu',to:'imooc',amount:100}
-
-const trans1 = {from:'woniu1',to:'imooc',amount:100}
-
-const signature = sign(trans)
-console.log(signature)
-trans.signature = signature
-
-const isVerity = verity(trans,keys.pub)
-
-console.log(isVerity)
+module.exports = { keys,sign,verify}
 
 
 

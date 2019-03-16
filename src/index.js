@@ -1,7 +1,7 @@
 const vorpal = require('vorpal')()
 const Blockchain = require('./blockchain')
 const Table = require('cli-table');
-
+const rsa = require('./rsa')
 
 
 function formatLog(data){
@@ -43,18 +43,19 @@ vorpal.command('detils <index>','查看区块明细')
          this.log(JSON.stringify(block))
          callback()
       })
-vorpal.command('trans <from> <to> <amount>','交易转账')
+vorpal.command('trans <to> <amount>','交易转账')
        .action(function(args,callback){
-            let trans = blockchain.transfer(args.from,args.to,args.amount)
+        //    本地公钥当做转出地址
+            let trans = blockchain.transfer(rsa.keys.pub,args.to,args.amount)
             if(trans){
                 formatLog(trans)
             }
             callback()
        })
 
-vorpal.command('mine <address>','挖矿')
+vorpal.command('mine','挖矿')
       .action(function(args,callback){
-          let newBlock = blockchain.mine(args.address)
+          let newBlock = blockchain.mine(rsa.keys.pub)
 
           if(newBlock){
             formatLog(newBlock)
@@ -68,11 +69,11 @@ vorpal.command('chain','查看区块链')
           callback()
       })
 
-// vorpal.command('hello','你好啊')
-//       .action(function(args,callback){
-//           this.log('你好，区块链')
-//           callback()
-//       })
+vorpal.command('pub','查看本地公钥')
+      .action(function(args,callback){
+          this.log(rsa.keys.pub)
+          callback()
+      })
 vorpal.exec('help')
 vorpal.delimiter('woniu-chain=>')
     .show()
