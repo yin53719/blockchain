@@ -17,17 +17,18 @@ class Blockchain {
       this.data = []
       this.difficulty = 5;
   }
-   // 挖矿
+   // 挖矿 实际就是打包
   mine(address){
-    // 验证交易是否合法
+    // 打包之前，验证交易是否合法
     if(!this.data.every(v=>this.isValidTranser(v))){
       console.log('trans,not valid');
       return 
     }
-
+    // 过滤不合法交易
     this.data = this.data.filter(v=>this.isValidTranser(v))
     // 挖矿结束，旷工奖励，100
     this.transfer('0',address,100)
+    // 生成新区块，打包交易信息
     const newBlock = this.generatnewBlock()
    
     if(this.isValidBlock(newBlock) && this.isValidChain()){
@@ -39,6 +40,7 @@ class Blockchain {
       console.log('Error,Invalid Block');
     }
   }
+  // 查询余额
   blance(address){
     let blance = 0;
     this.blockchain.forEach(block =>{
@@ -73,14 +75,11 @@ class Blockchain {
     // const transObj = { from ,to,amount}
     const sign = rsa.sign({from,to,amount})
     const sinTrans = {from,to,amount,sign }
-
+    // 加入交易记录
     this.data.push(sinTrans)
     return sinTrans
   }
-  computeForBlock({index,prevHash,timestamp,data,nonce}){
-      // const {index,prevHash,timestamp,data,nonce} = newBlock
-    return this.computeHash(index,prevHash,timestamp,data,nonce)
-  }
+  
   // 生成新区块
   generatnewBlock(){
     let nonce = 0;
@@ -90,13 +89,17 @@ class Blockchain {
     let timestamp = new Date().getTime();
     let hash = this.computeHash(index,prevHash,timestamp,data,nonce)
 
-    while(hash.slice(0,this.difficulty)!=='0'.repeat(this.difficulty)){
+    while(hash.slice(0,this.difficulty) !=='0'.repeat(this.difficulty)){
       nonce += 1
       hash = this.computeHash(index,prevHash,timestamp,data,nonce)
     }
     return {
       index,prevHash,timestamp,data,hash,nonce
     }
+  }
+  computeForBlock({index,prevHash,timestamp,data,nonce}){
+    // const {index,prevHash,timestamp,data,nonce} = newBlock
+    return this.computeHash(index,prevHash,timestamp,data,nonce)
   }
   // 计算哈希
   computeHash(index,prevHash,timestamp,data,nonce){
