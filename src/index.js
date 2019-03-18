@@ -5,6 +5,9 @@ const rsa = require('./rsa')
 
 
 function formatLog(data){
+    if(!data || data.length===0){
+        return
+    }
     if(!Array.isArray(data)){
         data = [data]
     }
@@ -63,7 +66,7 @@ vorpal.command('mine','挖矿')
           callback()
       })
 
-vorpal.command('chain','查看区块链')
+vorpal.command('blockchain','查看区块链')
       .action(function(args,callback){
         formatLog(blockchain.blockchain)
           callback()
@@ -72,6 +75,19 @@ vorpal.command('chain','查看区块链')
 vorpal.command('pub','查看本地公钥')
       .action(function(args,callback){
           this.log(rsa.keys.pub)
+          callback()
+      })
+vorpal.command('peers','查看网络节点列表')
+      .action(function(args,callback){
+         formatLog(blockchain.peers)
+          callback()
+      })
+vorpal.command('chat <msg>','跟别节点hi')
+      .action(function(args,callback){
+         blockchain.boardcast({
+             type:'hi',
+             data:args.msg
+         })
           callback()
       })
 vorpal.exec('help')

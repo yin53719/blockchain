@@ -38,8 +38,8 @@ const keys =  generateKeys()
 
 // 2,签名
 
-function sign({from,to,amount}){
-    const bufferMsg = Buffer.from(`${from}-${to}-${amount}`)
+function sign({from,to,amount,timestamp}){
+    const bufferMsg = Buffer.from(`${timestamp}-${amount}-${from}-${to}`)
     let signature = Buffer.from(keypair.sign(bufferMsg).toDER()).toString('hex')
 
     return signature
@@ -47,9 +47,9 @@ function sign({from,to,amount}){
 
 // 2,校验证签名
 
-function verify({from,to,amount,signature},pub){
+function verify({from,to,amount,signature,timestamp},pub){
     const keypairTemp = ec.keyFromPublic(pub,'hex')
-    const bufferMsg = Buffer.from(`${from}-${to}-${amount}`)
+    const bufferMsg = Buffer.from(`${timestamp}-${amount}-${from}-${to}`)
     return keypairTemp.verify(bufferMsg,signature)
 }
 

@@ -1,7 +1,9 @@
 
 const crypto = require('crypto')
-
 const rsa = require('./rsa')
+const dgram = require('dgram')
+const udp = dgram.createSocket('udp4')
+
 
 const initBlock = {
   index: 0,
@@ -15,7 +17,181 @@ class Blockchain {
   constructor(){
       this.blockchain = [initBlock]
       this.data = []
-      this.difficulty = 5;
+      this.difficulty = 4;
+      this.peers=[]
+      this.seed = {
+        port:8001,
+        address:'localhost'
+      }
+      this.udp = udp
+      this.init();
+  }
+  init(){
+    this.bindP2p()
+    this.bindExit()
+  }
+  bindP2p(){
+    this.udp.on('message',(data,remote)=>{
+      const { address,port} = remote
+      const action = JSON.parse(data)
+      if(action.type){
+          this.dispatch(action,{address,port})
+      }
+
+    })
+
+    this.udp.on('listening',()=>{
+      const address = this.udp.address()
+      console.log('[信息]:udp监听完毕 端口'+address.port)
+    })
+    const port = Number(process.argv[2]) || 0
+    this.startNode(port)
+  }
+  bindExit(){
+    process.on('exit',()=>{
+      console.log('【信息】:网络一线天')
+    })
+
+    
+  }
+  send(message,port,address){
+    this.udp.send(JSON.stringify(message),port,address)
+  }
+  startNode(port){
+    this.udp.bind(port)
+    if(port!==8001){
+      this.send({
+        type:'newpeer',
+      },this.seed.port,this.seed.address)
+
+      this.peers.push(this.seed)
+    }
+  }
+  boardcast(action){
+      this.peers.forEach(v=>{
+        this.send(action,v.port,v.address)
+      })
+  }
+  dispatch(action,remote){
+    switch(action.type){
+      case 'newpeer':
+        // 种子节点要做的事情
+        // 1,你的公网ip和port
+        this.send({
+          type:'remoteAddress',
+          data:remote
+        },remote.port,remote.address)
+        //2,现在全部节点列表
+        this.send({
+          type:'peerlist',
+          data:this.peers
+        },remote.port,remote.address)
+        //3,告诉所有已知节点，来了个新朋友 快打招呼
+        this.boardcast({
+          type:'sayhi',
+          data:remote
+        })
+        //4,告诉你现在区块链的数据
+         this.send({
+           type:'blockchain',
+           data:JSON.stringify({
+             blockchain:this.blockchain,
+            //  trans:this.data
+           })
+         },remote.port,remote.address)
+         this.peers.push(remote)
+         console.log('新朋友，请你喝茶',remote)
+         break
+      case 'blockchain':
+         //同步本地链
+         let allData  = JSON.parse(action.data)
+         let newChain = allData.blockchain
+          this.replaceChain(newChain)
+          break
+      case 'remoteAddress':
+         this.remote = action.data
+         break
+      case 'peerlist':
+         const newPeers = action.data
+         this.addPeers(newPeers)
+         break
+      case 'sayhi':
+         let remotePeer = action.data
+         console.log('[信息] 新朋友你好，相识就是缘，请你喝茶')
+         this.peers.push(remotePeer)
+         this.send({type:'hi',data:'hi'},remotePeer.port,remotePeer.address)
+        break
+      case 'hi':
+        console.log(`${remote.address}:${remote.port} : ${action.data}`)
+        break
+      case 'trans':
+        // 网络上收到的交易请求
+        //是不是有重复交易
+        if(this.data.find(v=>this.isEqualObj(v,action.data))){
+          console.log('新的交易注意查收')
+          this.addTrans(action.data)
+          this.boardcast({
+            type:'trans',
+            data:action.data
+          })
+        }
+        break
+      case 'mine':
+        const lastBlock = this.getLastBlock()
+        if(lastBlock.hash === action.data.hash){
+          // 重发消息
+          return 
+        }
+        if(this.isValidBlock(action.data,lastBlock)){
+          console.log('有朋友挖矿成功,喝彩，放烟花')
+          this.blockchain.push(action.data)
+          //清空本地消息
+          this.data = []
+          this.boardcast({
+            type:'mine',
+            data:action.data
+          })
+        }else{
+          console.log('区块不合法')
+        }
+        break
+      default:
+       console.log('这个action 不认识')
+       
+    }
+  }
+  addTrans(trans){
+      if(this.isValidTranser(trans)){
+          this.data.push(trans)
+      }
+  }
+  isEqualObj(obj1,obj2){
+    const key1 = Object.keys(obj1)
+    const key2 = Object.keys(obj2)
+    if(key1.length!==key2.length){
+        //key数量不同
+        return false
+    }
+    return key1.every(key=>obj1[key]===obj2[key])
+  }
+  addPeers(peers){
+     peers.forEach(peer =>{
+       if(!this.peers.find(v=>this.isEqualObj(peer,v))){
+         this.peers.push(peer)
+       }
+     })
+  }
+  replaceChain(newChain){
+    //先不校验交易
+    if(newChain.length===1){
+        return
+    }
+    if(this.isValidChain(newChain) && newChain.length>this.blockchain.length){
+      //拷贝一份
+      this.blockchain = JSON.parse(JSON.stringify(newChain))
+    }else{
+      console.log('错误,不合法链')
+    }
   }
    // 挖矿 实际就是打包
   mine(address){
@@ -35,6 +211,11 @@ class Blockchain {
       
       this.blockchain.push(newBlock)
       this.data = [];
+      console.log('挖矿成功')
+      this.boardcast({
+        type:'mine',
+        data:newBlock
+      })
       return newBlock
     }else{
       console.log('Error,Invalid Block');
@@ -72,9 +253,14 @@ class Blockchain {
         return 
       }
     }
-    // const transObj = { from ,to,amount}
-    const sign = rsa.sign({from,to,amount})
-    const sinTrans = {from,to,amount,sign }
+     const timestamp = new Date().getTime();
+    const sign = rsa.sign({from,to,amount,timestamp})
+    const sinTrans = {from,to,amount,sign ,timestamp}
+
+    this.boardcast({
+      type:'trans',
+      data:sinTrans
+    })
     // 加入交易记录
     this.data.push(sinTrans)
     return sinTrans
