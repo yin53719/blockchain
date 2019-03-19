@@ -49,10 +49,8 @@ class Blockchain {
   }
   bindExit(){
     process.on('exit',()=>{
-      console.log('【信息】:网络一线天')
+      console.log('[信息]:网络一线天,相识就是缘')
     })
-
-    
   }
   send(message,port,address){
     this.udp.send(JSON.stringify(message),port,address)
@@ -197,7 +195,7 @@ class Blockchain {
   mine(address){
     // 打包之前，验证交易是否合法
     if(!this.data.every(v=>this.isValidTranser(v))){
-      console.log('trans,not valid');
+      console.log('交易不合法 ');
       return 
     }
     // 过滤不合法交易

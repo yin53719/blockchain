@@ -82,7 +82,7 @@ vorpal.command('peers','查看网络节点列表')
          formatLog(blockchain.peers)
           callback()
       })
-vorpal.command('chat <msg>','跟别节点hi')
+vorpal.command('chat <msg>','和其他节点打招呼')
       .action(function(args,callback){
          blockchain.boardcast({
              type:'hi',
